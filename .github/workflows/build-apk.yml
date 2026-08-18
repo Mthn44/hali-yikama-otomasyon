@@ -1,0 +1,67 @@
+name: Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Kodu indir
+        uses: actions/checkout@v4
+
+      - name: Python kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Buildozer ve bağımlılıkları kur
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            git zip unzip openjdk-17-jdk \
+            autoconf automake libtool pkg-config \
+            zlib1g-dev libncurses5-dev \
+            libncursesw5-dev libtinfo5 \
+            cmake libffi-dev libssl-dev
+
+          pip install --upgrade pip
+          pip install buildozer cython
+
+      - name: Buildozer ayarla
+        run: |
+          cat > buildozer.spec <<'EOF'
+          [app]
+          title = Hali Yikama Otomasyonu
+          package.name = haliotomasyon
+          package.domain = org.haliyikama
+          source.dir = .
+          source.include_exts = py,png,jpg,kv,atlas
+          version = 1.0
+          requirements = python3,kivy
+          orientation = portrait
+          fullscreen = 0
+
+          [buildozer]
+          log_level = 2
+          warn_on_root = 1
+
+          [app:android]
+          android.api = 35
+          android.minapi = 21
+          android.arch = arm64-v8a
+          android.accept_sdk_license = True
+          EOF
+
+      - name: APK oluştur
+        run: buildozer android debug
+
+      - name: APK'yı yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: hali-yikama-apk
+          path: bin/*.apk
