@@ -11,16 +11,17 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
+
       - name: Kodu indir
         uses: actions/checkout@v4
 
-      - name: Java kur
+      - name: Java 17 kur
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
 
-      - name: Python kur
+      - name: Python 3.11 kur
         uses: actions/setup-python@v6
         with:
           python-version: "3.11"
@@ -30,10 +31,9 @@ jobs:
 
       - name: Android SDK paketlerini kur
         run: |
-          sdkmanager --install \
-            "platform-tools" \
-            "platforms;android-35" \
-            "build-tools;35.0.0"
+          sdkmanager --install "platform-tools"
+          sdkmanager --install "platforms;android-35"
+          sdkmanager --install "build-tools;35.0.0"
 
           yes | sdkmanager --licenses || true
 
@@ -41,26 +41,37 @@ jobs:
         run: |
           echo "$ANDROID_HOME/build-tools/35.0.0" >> "$GITHUB_PATH"
 
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          echo "AIDL kontrol ediliyor..."
+          echo "ANDROID_HOME:"
+          echo "$ANDROID_HOME"
 
-          ls -la "$ANDROID_HOME/build-tools/35.0.0/"
+          echo "AIDL kontrolü:"
 
           test -f "$ANDROID_HOME/build-tools/35.0.0/aidl"
 
-          "$ANDROID_HOME/build-tools/35.0.0/aidl" --version
+          echo "AIDL bulundu!"
 
-      - name: Sistem paketleri
+          "$ANDROID_HOME/build-tools/35.0.0/aidl" --help || true
+
+      - name: Sistem paketlerini kur
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            git zip unzip \
-            autoconf automake libtool pkg-config \
-            zlib1g-dev libncurses5-dev \
-            libncursesw5-dev cmake \
-            libffi-dev libssl-dev
 
-      - name: Buildozer kur
+          sudo apt-get install -y \
+            git \
+            zip \
+            unzip \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
+            zlib1g-dev \
+            libncurses5-dev \
+            libncursesw5-dev \
+            cmake \
+            libffi-dev \
+            libssl-dev
+
+      - name: Buildozer ve Cython kur
         run: |
           python -m pip install --upgrade pip
           python -m pip install buildozer cython
@@ -68,34 +79,54 @@ jobs:
       - name: Buildozer ayarla
         run: |
           cat > buildozer.spec <<'EOF'
+
           [app]
+
           title = Hali Yikama Otomasyonu
+
           package.name = haliotomasyon
+
           package.domain = org.haliyikama
+
           source.dir = .
+
           source.include_exts = py,png,jpg,kv,atlas
+
           version = 1.0
+
           requirements = python3,kivy
+
           orientation = portrait
+
           fullscreen = 0
 
+
           [buildozer]
+
           log_level = 2
+
           warn_on_root = 1
 
+
           [app:android]
+
           android.api = 35
+
           android.minapi = 21
+
           android.archs = arm64-v8a
+
           android.accept_sdk_license = True
+
           android.permissions = INTERNET
+
           EOF
 
       - name: APK oluştur
         run: |
           buildozer android debug
 
-      - name: APK'yı yükle
+      - name: APK dosyasını yükle
         uses: actions/upload-artifact@v4
         with:
           name: hali-yikama-apk
