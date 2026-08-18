@@ -1,4 +1,4 @@
-name: metehan APK
+name: Android APK
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Kodu indir
@@ -25,7 +25,32 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Sistem paketlerini kur
+      - name: Android SDK kur
+        uses: android-actions/setup-android@v3
+
+      - name: Android SDK paketlerini kur
+        run: |
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0"
+
+          yes | sdkmanager --licenses || true
+
+      - name: AIDL yolunu ayarla
+        run: |
+          echo "$ANDROID_HOME/build-tools/35.0.0" >> "$GITHUB_PATH"
+
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "AIDL kontrol ediliyor..."
+
+          ls -la "$ANDROID_HOME/build-tools/35.0.0/"
+
+          test -f "$ANDROID_HOME/build-tools/35.0.0/aidl"
+
+          "$ANDROID_HOME/build-tools/35.0.0/aidl" --version
+
+      - name: Sistem paketleri
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -34,37 +59,6 @@ jobs:
             zlib1g-dev libncurses5-dev \
             libncursesw5-dev cmake \
             libffi-dev libssl-dev
-
-      - name: Android SDK kur
-        uses: android-actions/setup-android@v3
-
-      - name: Android SDK ve AIDL kur
-        shell: bash
-        run: |
-          sdkmanager "platform-tools"
-          sdkmanager "platforms;android-35"
-          sdkmanager "build-tools;35.0.0"
-
-          yes | sdkmanager --licenses || true
-
-          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
-          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
-
-          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
-          echo "$ANDROID_HOME/build-tools/35.0.0" >> "$GITHUB_PATH"
-
-          echo "AIDL kontrol:"
-          find "$ANDROID_HOME" -name aidl -type f -print
-
-          AIDL_PATH=$(find "$ANDROID_HOME/build-tools" -name aidl -type f | sort | tail -1)
-
-          if [ -z "$AIDL_PATH" ]; then
-            echo "AIDL bulunamadı!"
-            exit 1
-          fi
-
-          echo "AIDL bulundu: $AIDL_PATH"
-          "$AIDL_PATH" --version
 
       - name: Buildozer kur
         run: |
